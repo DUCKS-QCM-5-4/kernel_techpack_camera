@@ -42,11 +42,6 @@
 #define CAM_IR_LED_PACKET_OPCODE_OFF 0
 #define CAM_IR_LED_PACKET_OPCODE_ON  1
 
-enum cam_ir_led_switch_trigger_ops {
-	LED_SWITCH_OFF = 0,
-	LED_SWITCH_ON,
-};
-
 enum cam_ir_led_state {
 	CAM_IR_LED_STATE_INIT = 0,
 	CAM_IR_LED_STATE_ACQUIRE,
@@ -136,5 +131,16 @@ struct cam_ir_led_ctrl {
 	enum   cam_ir_led_state ir_led_state;
 	int32_t                 device_hdl;
 };
+
+/**
+ * @brief : API to register CAM IR_LED hw to platform framework.
+ * @return struct platform_device pointer on on success, or ERR_PTR() on error.
+ */
+int32_t cam_ir_led_driver_init_module(void);
+
+/**
+ * @brief : API to remove CAM IR_LED hw from platform framework.
+ */
+void cam_ir_led_driver_exit_module(void);
 
 #endif /*_CAM_IR_LED_DEV_H_*/

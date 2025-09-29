@@ -15,6 +15,7 @@
 #include "cam_ir_led_dev.h"
 #include "cam_ir_led_soc.h"
 #include "cam_ir_led_core.h"
+#include "camera_main.h"
 
 static int32_t cam_ir_led_driver_cmd(struct cam_ir_led_ctrl *ictrl,
 		void *arg, struct cam_ir_led_private_soc *soc_private)
@@ -239,21 +240,6 @@ static long cam_ir_led_subdev_do_ioctl(struct v4l2_subdev *sd,
 }
 #endif
 
-static int cam_ir_led_platform_remove(struct platform_device *pdev)
-{
-	struct cam_ir_led_ctrl *ictrl;
-
-	ictrl = platform_get_drvdata(pdev);
-	if (!ictrl) {
-		CAM_ERR(CAM_IR_LED, " Ir_led device is NULL");
-		return 0;
-	}
-
-	devm_kfree(&pdev->dev, ictrl);
-
-	return 0;
-}
-
 static int cam_ir_led_subdev_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -287,10 +273,12 @@ static const struct v4l2_subdev_internal_ops cam_ir_led_internal_ops = {
 	.close = cam_ir_led_subdev_close,
 };
 
-static int32_t cam_ir_led_platform_probe(struct platform_device *pdev)
+static int cam_ir_led_component_bind(struct device *dev,
+	struct device *master_dev, void *data)
 {
-	int32_t rc = 0;
+	struct platform_device *pdev = to_platform_device(dev);
 	struct cam_ir_led_ctrl *ir_led_ctrl = NULL;
+	int32_t rc = 0;
 
 	CAM_ERR(CAM_IR_LED, "DBG:Enter");
 	if (!pdev->dev.of_node) {
@@ -331,7 +319,8 @@ static int32_t cam_ir_led_platform_probe(struct platform_device *pdev)
 	rc = cam_register_subdev(&(ir_led_ctrl->v4l2_dev_str));
 	if (rc) {
 		CAM_ERR(CAM_IR_LED, "Fail to create subdev with %d", rc);
-		goto free_resource;
+		kfree(ir_led_ctrl);
+		return rc;
 	}
 	ir_led_ctrl->device_hdl = -1;
 
@@ -341,16 +330,53 @@ static int32_t cam_ir_led_platform_probe(struct platform_device *pdev)
 	mutex_init(&(ir_led_ctrl->ir_led_mutex));
 
 	ir_led_ctrl->ir_led_state = CAM_IR_LED_STATE_INIT;
-	CAM_ERR(CAM_IR_LED, "DBG:Probe success");
+
+	CAM_DBG(CAM_IR_LED, "Component bound successfully");
+
 	return rc;
-free_resource:
-	kfree(ir_led_ctrl);
+}
+
+static void cam_ir_led_component_unbind(struct device *dev,
+	struct device *master_dev, void *data)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct cam_ir_led_ctrl *ictrl;
+
+	ictrl = platform_get_drvdata(pdev);
+	if (!ictrl) {
+		CAM_ERR(CAM_IR_LED, "Ir_led device is NULL");
+		return;
+	}
+
+	kfree(ictrl);
+}
+
+static const struct component_ops cam_ir_led_component_ops = {
+	.bind = cam_ir_led_component_bind,
+	.unbind = cam_ir_led_component_unbind,
+};
+
+static int32_t cam_ir_led_platform_probe(struct platform_device *pdev)
+{
+	int rc = 0;
+
+	CAM_DBG(CAM_IR_LED, "Adding IR LED component");
+	rc = component_add(&pdev->dev, &cam_ir_led_component_ops);
+	if (rc)
+		CAM_ERR(CAM_IR_LED, "failed to add component rc: %d", rc);
+
 	return rc;
+}
+
+static int cam_ir_led_platform_remove(struct platform_device *pdev)
+{
+	component_del(&pdev->dev, &cam_ir_led_component_ops);
+	return 0;
 }
 
 MODULE_DEVICE_TABLE(of, cam_ir_led_dt_match);
 
-static struct platform_driver cam_ir_led_platform_driver = {
+struct platform_driver cam_ir_led_platform_driver = {
 	.probe = cam_ir_led_platform_probe,
 	.remove = cam_ir_led_platform_remove,
 	.driver = {
@@ -361,7 +387,7 @@ static struct platform_driver cam_ir_led_platform_driver = {
 	},
 };
 
-static int __init cam_ir_led_init_module(void)
+int cam_ir_led_driver_init_module(void)
 {
 	int32_t rc = 0;
 
@@ -372,12 +398,10 @@ static int __init cam_ir_led_init_module(void)
 	return rc;
 }
 
-static void __exit cam_ir_led_exit_module(void)
+void cam_ir_led_driver_exit_module(void)
 {
 	platform_driver_unregister(&cam_ir_led_platform_driver);
 }
 
-module_init(cam_ir_led_init_module);
-module_exit(cam_ir_led_exit_module);
 MODULE_DESCRIPTION("CAM IR_LED");
 MODULE_LICENSE("GPL v2");

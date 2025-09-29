@@ -292,7 +292,7 @@ static struct cam_ife_csid_common_reg_offset
 	.format_measure_en_val                        = 1,
 };
 
-struct cam_ife_csid_reg_offset cam_ife_csid_170_reg_offset = {
+static struct cam_ife_csid_reg_offset cam_ife_csid_170_reg_offset = {
 	.cmn_reg          = &cam_ife_csid_170_cmn_reg_offset,
 	.csi2_reg         = &cam_ife_csid_170_csi2_reg_offset,
 	.ipp_reg          = &cam_ife_csid_170_ipp_reg_offset,
@@ -304,5 +304,15 @@ struct cam_ife_csid_reg_offset cam_ife_csid_170_reg_offset = {
 		},
 	.tpg_reg = &cam_ife_csid_170_tpg_reg_offset,
 };
+
+/**
+ * @brief : API to remove CSID PPI170 from platform framework.
+ */
+int cam_ife_csid170_init_module(void);
+
+/**
+ * @brief : API to remove CSID PPI170 from platform framework.
+ */
+void cam_ife_csid170_exit_module(void);
 
 #endif /*_CAM_IFE_CSID_170_H_ */

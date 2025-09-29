@@ -14,7 +14,6 @@
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/mutex.h>
-#include <linux/msm_ion.h>
 #include <linux/slab.h>
 #include <linux/ion.h>
 #include <linux/dma-buf.h>

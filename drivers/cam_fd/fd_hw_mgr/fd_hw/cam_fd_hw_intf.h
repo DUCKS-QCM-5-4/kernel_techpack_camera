@@ -286,4 +286,15 @@ struct cam_fd_hw_cmd_set_irq_cb {
 	void *data;
 };
 
+/**
+ * @brief : API to register FD Hw to platform framework.
+ * @return struct platform_device pointer on on success, or ERR_PTR() on error.
+ */
+int cam_fd_hw_init_module(void);
+
+/**
+ * @brief : API to remove FD Hw interface from platform framework.
+ */
+void cam_fd_hw_exit_module(void);
+
 #endif /* _CAM_FD_HW_INTF_H_ */

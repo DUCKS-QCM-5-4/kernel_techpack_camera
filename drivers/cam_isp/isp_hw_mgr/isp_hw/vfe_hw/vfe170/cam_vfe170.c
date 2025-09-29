@@ -15,6 +15,7 @@
 #include "cam_vfe_hw_intf.h"
 #include "cam_vfe_core.h"
 #include "cam_vfe_dev.h"
+#include "camera_main.h"
 
 static const struct of_device_id cam_vfe170_dt_match[] = {
 	{
@@ -25,7 +26,7 @@ static const struct of_device_id cam_vfe170_dt_match[] = {
 };
 MODULE_DEVICE_TABLE(of, cam_vfe170_dt_match);
 
-static struct platform_driver cam_vfe170_driver = {
+struct platform_driver cam_vfe170_driver = {
 	.probe = cam_vfe_probe,
 	.remove = cam_vfe_remove,
 	.driver = {
@@ -36,17 +37,15 @@ static struct platform_driver cam_vfe170_driver = {
 	},
 };
 
-static int __init cam_vfe170_init_module(void)
+int cam_vfe170_init_module(void)
 {
 	return platform_driver_register(&cam_vfe170_driver);
 }
 
-static void __exit cam_vfe170_exit_module(void)
+void cam_vfe170_exit_module(void)
 {
 	platform_driver_unregister(&cam_vfe170_driver);
 }
 
-module_init(cam_vfe170_init_module);
-module_exit(cam_vfe170_exit_module);
 MODULE_DESCRIPTION("CAM VFE170 driver");
 MODULE_LICENSE("GPL v2");

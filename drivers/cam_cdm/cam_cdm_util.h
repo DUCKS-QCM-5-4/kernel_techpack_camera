@@ -13,6 +13,8 @@
 #ifndef _CAM_CDM_UTIL_H_
 #define _CAM_CDM_UTIL_H_
 
+extern struct cam_cdm_utils_ops CDM170_ops;
+
 enum cam_cdm_command {
 	CAM_CDM_CMD_UNUSED = 0x0,
 	CAM_CDM_CMD_DMI = 0x1,

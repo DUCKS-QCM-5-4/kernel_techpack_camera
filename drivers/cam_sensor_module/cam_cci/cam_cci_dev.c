@@ -14,6 +14,7 @@
 #include "cam_req_mgr_dev.h"
 #include "cam_cci_soc.h"
 #include "cam_cci_core.h"
+#include "camera_main.h"
 
 #define CCI_MAX_DELAY 1000000
 
@@ -267,42 +268,16 @@ static const struct v4l2_subdev_ops cci_subdev_ops = {
 
 static const struct v4l2_subdev_internal_ops cci_subdev_intern_ops;
 
-static struct v4l2_file_operations cci_v4l2_subdev_fops;
-
-static long cam_cci_subdev_do_ioctl(
-	struct file *file, unsigned int cmd, void *arg)
+static int cam_cci_component_bind(struct device *dev,
+	struct device *master_dev, void *data)
 {
-	struct video_device *vdev = video_devdata(file);
-	struct v4l2_subdev *sd = vdev_to_v4l2_subdev(vdev);
-
-	return cam_cci_subdev_ioctl(sd, cmd, NULL);
-}
-
-static long cam_cci_subdev_fops_ioctl(struct file *file, unsigned int cmd,
-	unsigned long arg)
-{
-	return video_usercopy(file, cmd, arg, cam_cci_subdev_do_ioctl);
-}
-
-#ifdef CONFIG_COMPAT
-static long cam_cci_subdev_fops_compat_ioctl(struct file *file,
-	unsigned int cmd, unsigned long arg)
-{
-	struct video_device *vdev = video_devdata(file);
-	struct v4l2_subdev *sd = vdev_to_v4l2_subdev(vdev);
-
-	return v4l2_subdev_call(sd, core, ioctl, cmd, NULL);
-}
-#endif
-
-static int cam_cci_platform_probe(struct platform_device *pdev)
-{
+	struct platform_device *pdev = to_platform_device(dev);
 	struct cam_cpas_register_params cpas_parms;
 	struct cci_device *new_cci_dev;
 	struct cam_hw_soc_info *soc_info = NULL;
 	int rc = 0;
 
-	new_cci_dev = kzalloc(sizeof(struct cci_device),
+	new_cci_dev = devm_kzalloc(&pdev->dev, sizeof(struct cci_device),
 		GFP_KERNEL);
 	if (!new_cci_dev)
 		return -ENOMEM;
@@ -318,7 +293,7 @@ static int cam_cci_platform_probe(struct platform_device *pdev)
 	rc = cam_cci_parse_dt_info(pdev, new_cci_dev);
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "Resource get Failed: %d", rc);
-		goto cci_no_resource;
+		goto fail;
 	}
 
 	new_cci_dev->v4l2_dev_str.internal_ops =
@@ -338,19 +313,14 @@ static int cam_cci_platform_probe(struct platform_device *pdev)
 	rc = cam_register_subdev(&(new_cci_dev->v4l2_dev_str));
 	if (rc < 0) {
 		CAM_ERR(CAM_CCI, "Fail with cam_register_subdev");
-		goto cci_no_resource;
+		goto fail;
 	}
 
 	platform_set_drvdata(pdev, &(new_cci_dev->v4l2_dev_str.sd));
 	v4l2_set_subdevdata(&new_cci_dev->v4l2_dev_str.sd, new_cci_dev);
 	g_cci_subdev = &new_cci_dev->v4l2_dev_str.sd;
 
-	cam_register_subdev_fops(&cci_v4l2_subdev_fops);
-	cci_v4l2_subdev_fops.unlocked_ioctl = cam_cci_subdev_fops_ioctl;
-#ifdef CONFIG_COMPAT
-	cci_v4l2_subdev_fops.compat_ioctl32 =
-		cam_cci_subdev_fops_compat_ioctl;
-#endif
+	CAM_DBG(CAM_CCI, "Bind component CCI %d", soc_info->index);
 
 	cpas_parms.cam_cpas_client_cb = NULL;
 	cpas_parms.cell_index = 0;
@@ -360,27 +330,60 @@ static int cam_cci_platform_probe(struct platform_device *pdev)
 	rc = cam_cpas_register_client(&cpas_parms);
 	if (rc) {
 		CAM_ERR(CAM_CCI, "CPAS registration failed");
-		goto cci_no_resource;
+		goto register_client_fail;
 	}
 	CAM_DBG(CAM_CCI, "CPAS registration successful handle=%d",
 		cpas_parms.client_handle);
 	new_cci_dev->cpas_handle = cpas_parms.client_handle;
 
+	CAM_DBG(CAM_CCI, "Component bound successfully");
+
 	return rc;
-cci_no_resource:
-	kfree(new_cci_dev);
+
+register_client_fail:
+	mutex_destroy(&new_cci_dev->init_mutex);
+fail:
+	devm_kfree(&pdev->dev, new_cci_dev);
+	return rc;
+}
+
+static void cam_cci_component_unbind(struct device *dev,
+	struct device *master_dev, void *data)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct v4l2_subdev *subdev = platform_get_drvdata(pdev);
+	struct cci_device *cci_dev = v4l2_get_subdevdata(subdev);
+	int rc = 0;
+
+	cam_cpas_unregister_client(cci_dev->cpas_handle);
+	cam_cci_soc_remove(pdev, cci_dev);
+	rc = cam_unregister_subdev(&(cci_dev->v4l2_dev_str));
+	if (rc < 0)
+		CAM_ERR(CAM_CCI, "Fail with cam_unregister_subdev. rc:%d", rc);
+
+	devm_kfree(&pdev->dev, cci_dev);
+}
+
+static const struct component_ops cam_cci_component_ops = {
+	.bind = cam_cci_component_bind,
+	.unbind = cam_cci_component_unbind,
+};
+
+static int cam_cci_platform_probe(struct platform_device *pdev)
+{
+	int rc = 0;
+
+	CAM_DBG(CAM_CCI, "Adding CCI component");
+	rc = component_add(&pdev->dev, &cam_cci_component_ops);
+	if (rc)
+		CAM_ERR(CAM_CCI, "failed to add component rc: %d", rc);
+
 	return rc;
 }
 
 static int cam_cci_device_remove(struct platform_device *pdev)
 {
-	struct v4l2_subdev *subdev = platform_get_drvdata(pdev);
-	struct cci_device *cci_dev =
-		v4l2_get_subdevdata(subdev);
-
-	cam_cpas_unregister_client(cci_dev->cpas_handle);
-	cam_cci_soc_remove(pdev, cci_dev);
-	devm_kfree(&pdev->dev, cci_dev);
+	component_del(&pdev->dev, &cam_cci_component_ops);
 	return 0;
 }
 
@@ -391,7 +394,7 @@ static const struct of_device_id cam_cci_dt_match[] = {
 
 MODULE_DEVICE_TABLE(of, cam_cci_dt_match);
 
-static struct platform_driver cci_driver = {
+struct platform_driver cci_driver = {
 	.probe = cam_cci_platform_probe,
 	.remove = cam_cci_device_remove,
 	.driver = {
@@ -402,38 +405,15 @@ static struct platform_driver cci_driver = {
 	},
 };
 
-static int cam_cci_assign_fops(void)
-{
-	struct v4l2_subdev *sd;
-
-	sd = g_cci_subdev;
-	if (!sd || !(sd->devnode)) {
-		CAM_ERR(CAM_CRM,
-			"Invalid args sd node: %pK", sd);
-		return -EINVAL;
-	}
-	sd->devnode->fops = &cci_v4l2_subdev_fops;
-
-	return 0;
-}
-
-static int __init cam_cci_late_init(void)
-{
-	return cam_cci_assign_fops();
-}
-
-static int __init cam_cci_init_module(void)
+int cam_cci_init_module(void)
 {
 	return platform_driver_register(&cci_driver);
 }
 
-static void __exit cam_cci_exit_module(void)
+void cam_cci_exit_module(void)
 {
 	platform_driver_unregister(&cci_driver);
 }
 
-module_init(cam_cci_init_module);
-late_initcall(cam_cci_late_init);
-module_exit(cam_cci_exit_module);
 MODULE_DESCRIPTION("MSM CCI driver");
 MODULE_LICENSE("GPL v2");

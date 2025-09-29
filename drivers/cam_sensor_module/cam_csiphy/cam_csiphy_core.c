@@ -11,20 +11,13 @@
  */
 
 #include <linux/module.h>
+#include <linux/qcom_scm.h>
+#include <cam_mem_mgr.h>
 #include "cam_csiphy_core.h"
 #include "cam_csiphy_dev.h"
 #include "cam_csiphy_soc.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
-
-
-#include <soc/qcom/scm.h>
-#include <cam_mem_mgr.h>
-
-#define SCM_SVC_CAMERASS 0x18
-#define SECURE_SYSCALL_ID 0x6
-
-#define SECURE_SYSCALL_ID_2 0x7
 
 static int csiphy_dump;
 module_param(csiphy_dump, int, 0644);
@@ -32,33 +25,17 @@ module_param(csiphy_dump, int, 0644);
 static int cam_csiphy_notify_secure_mode(struct csiphy_device *csiphy_dev,
 	bool protect, int32_t offset)
 {
-	struct scm_desc desc = {0};
-	int result = -1;
+	int rc = 0;
 
-	if (offset >= CSIPHY_MAX_INSTANCES)
-		return -EINVAL;
-	desc.arginfo = SCM_ARGS(2, SCM_VAL, SCM_VAL);
-	desc.args[0] = protect;
-	desc.args[1] = csiphy_dev->csiphy_cpas_cp_reg_mask[offset];
-
-	/*
-	 * If SECURE_SYSCALL_ID_2 is not supported
-	 * then fallback to SECURE_SYSCALL_ID
-	 */
-	result = scm_call2(SCM_SIP_FNID(SCM_SVC_CAMERASS, SECURE_SYSCALL_ID_2),
-		&desc);
-	if (result == -EOPNOTSUPP) {
-		desc.args[1] = csiphy_dev->soc_info.index;
-		CAM_ERR(CAM_CSIPHY, "SCM CALL 7 not supported fallback to 6");
-		result = scm_call2(SCM_SIP_FNID(SCM_SVC_CAMERASS,
-						SECURE_SYSCALL_ID), &desc);
-	}
-	if (result) {
+	if (offset >= CSIPHY_MAX_INSTANCES) {
+		rc = -EINVAL;
+	} else if (qcom_scm_camera_protect_phy_lanes(protect,
+			csiphy_dev->csiphy_cpas_cp_reg_mask[offset])) {
 		CAM_ERR(CAM_CSIPHY, "scm call to hypervisor failed");
-		return -EINVAL;
+		rc = -EINVAL;
 	}
 
-	return 0;
+	return rc;
 }
 
 static int32_t cam_csiphy_get_instance_offset(

@@ -124,6 +124,9 @@ struct cam_actuator_ctrl_t {
 	struct i2c_data_settings i2c_data;
 	struct cam_actuator_query_cap act_info;
 	struct actuator_intf_params bridge_intf;
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	struct platform_device *pdev;
+#endif
 	uint32_t last_flush_req;
 };
 

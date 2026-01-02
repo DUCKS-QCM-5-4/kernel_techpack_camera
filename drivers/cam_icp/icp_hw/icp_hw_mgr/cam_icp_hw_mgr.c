@@ -58,7 +58,11 @@
 #define ICP_DEV_TYPE_TO_CLK_TYPE(dev_type) \
 	((dev_type == CAM_ICP_RES_TYPE_BPS) ? ICP_CLK_HW_BPS : ICP_CLK_HW_IPE)
 
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+#define ICP_DEVICE_IDLE_TIMEOUT 3000
+#else
 #define ICP_DEVICE_IDLE_TIMEOUT 400
+#endif
 
 static struct cam_icp_hw_mgr icp_hw_mgr;
 
@@ -577,7 +581,11 @@ static int cam_icp_ctx_timer_start(struct cam_icp_hw_ctx_data *ctx_data)
 	int rc = 0;
 
 	rc = crm_timer_init(&ctx_data->watch_dog,
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+		ICP_DEVICE_IDLE_TIMEOUT, ctx_data, &cam_icp_ctx_timer_cb);
+#else
 		200, ctx_data, &cam_icp_ctx_timer_cb);
+#endif
 	if (rc)
 		CAM_ERR(CAM_ICP, "Failed to start timer");
 

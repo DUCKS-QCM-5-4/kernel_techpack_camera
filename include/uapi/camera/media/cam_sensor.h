@@ -370,6 +370,9 @@ struct cam_sensor_acquire_dev {
 	__u32       handle_type;
 	__u32       reserved;
 	__u64       info_handle;
+	/* Xiaomi-sdm845 change start*/
+	uint32_t    operation_mode;
+	/* Xiaomi-sdm845 change end*/
 } __attribute__((packed));
 
 /**

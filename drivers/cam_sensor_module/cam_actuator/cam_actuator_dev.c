@@ -318,6 +318,9 @@ static int cam_actuator_platform_component_bind(struct device *dev,
 	/*fill in platform device*/
 	a_ctrl->v4l2_dev_str.pdev = pdev;
 	a_ctrl->soc_info.pdev = pdev;
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	a_ctrl->pdev = pdev;
+#endif
 	a_ctrl->soc_info.dev = &pdev->dev;
 	a_ctrl->soc_info.dev_name = pdev->name;
 	a_ctrl->io_master_info.master_type = CCI_MASTER;

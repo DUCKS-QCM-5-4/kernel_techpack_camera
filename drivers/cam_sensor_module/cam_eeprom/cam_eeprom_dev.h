@@ -77,6 +77,9 @@ struct cam_eeprom_memory_map_t {
 	struct cam_eeprom_map_t page;
 	struct cam_eeprom_map_t pageen;
 	struct cam_eeprom_map_t poll;
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	struct cam_eeprom_map_t delay;
+#endif
 	struct cam_eeprom_map_t mem;
 	uint32_t saddr;
 };

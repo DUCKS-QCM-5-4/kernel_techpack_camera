@@ -116,6 +116,11 @@ static int32_t cam_actuator_power_up(struct cam_actuator_ctrl_t *a_ctrl)
 		return rc;
 	}
 
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	/* VREG needs some delay to power up */
+	usleep_range(10000, 10050);
+#endif
+
 	rc = camera_io_init(&a_ctrl->io_master_info);
 	if (rc < 0)
 		CAM_ERR(CAM_ACTUATOR, "cci init failed: rc: %d", rc);
@@ -371,6 +376,7 @@ int32_t cam_actuator_establish_link(
 	return 0;
 }
 
+#if !defined(CONFIG_MACH_XIAOMI_SDM845)
 static void cam_actuator_update_req_mgr(
 	struct cam_actuator_ctrl_t *a_ctrl,
 	struct cam_packet *csl_packet)
@@ -392,6 +398,7 @@ static void cam_actuator_update_req_mgr(
 			csl_packet->header.request_id);
 	}
 }
+#endif
 
 int32_t cam_actuator_publish_dev_info(struct cam_req_mgr_device_info *info)
 {
@@ -429,6 +436,9 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 	struct cam_cmd_buf_desc   *cmd_desc = NULL;
 	struct cam_actuator_soc_private *soc_private = NULL;
 	struct cam_sensor_power_ctrl_t  *power_info = NULL;
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	struct cam_req_mgr_add_request  add_req;
+#endif
 
 	if (!a_ctrl || !arg) {
 		CAM_ERR(CAM_ACTUATOR, "Invalid Args");
@@ -632,7 +642,9 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				"Auto move lens parsing failed: %d", rc);
 			goto rel_pkt_buf;
 		}
+#if !defined(CONFIG_MACH_XIAOMI_SDM845)
 		cam_actuator_update_req_mgr(a_ctrl, csl_packet);
+#endif
 		break;
 	case CAM_ACTUATOR_PACKET_MANUAL_MOVE_LENS:
 		if (a_ctrl->cam_act_state < CAM_ACTUATOR_CONFIG) {
@@ -663,9 +675,11 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				"Manual move lens parsing failed: %d", rc);
 			goto rel_pkt_buf;
 		}
-
+#if !defined(CONFIG_MACH_XIAOMI_SDM845)
 		cam_actuator_update_req_mgr(a_ctrl, csl_packet);
+#endif
 		break;
+#if !defined(CONFIG_MACH_XIAOMI_SDM845)
 	case CAM_PKT_NOP_OPCODE:
 		if (a_ctrl->cam_act_state < CAM_ACTUATOR_CONFIG) {
 			CAM_WARN(CAM_ACTUATOR,
@@ -675,12 +689,28 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		}
 		cam_actuator_update_req_mgr(a_ctrl, csl_packet);
 		break;
+#endif
 	default:
 		CAM_ERR(CAM_ACTUATOR, "Wrong Opcode: %d",
 			csl_packet->header.op_code & 0xFFFFFF);
 		rc = -EINVAL;
 		goto rel_pkt_buf;
 	}
+
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+	if ((csl_packet->header.op_code & 0xFFFFFF) !=
+		CAM_ACTUATOR_PACKET_OPCODE_INIT) {
+		add_req.link_hdl = a_ctrl->bridge_intf.link_hdl;
+		add_req.req_id = csl_packet->header.request_id;
+		add_req.dev_hdl = a_ctrl->bridge_intf.device_hdl;
+		add_req.skip_before_applying = 0;
+		if (a_ctrl->bridge_intf.crm_cb &&
+			a_ctrl->bridge_intf.crm_cb->add_req)
+			a_ctrl->bridge_intf.crm_cb->add_req(&add_req);
+		CAM_DBG(CAM_ACTUATOR, "Req Id: %lld added to Bridge",
+			add_req.req_id);
+	}
+#endif
 
 	if (cam_mem_put_cpu_buf(config.packet_handle))
 		CAM_WARN(CAM_ACTUATOR, "Fail to put cmd buffer: 0x%x",

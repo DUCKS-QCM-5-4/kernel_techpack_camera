@@ -188,20 +188,6 @@ struct cam_hw_prepare_update_args {
 };
 
 /**
- * struct cam_hw_stream_setttings - Payload for config stream command
- *
- * @packet:                CSL packet from user mode driver
- * @ctxt_to_hw_map:        HW context from the acquire
- * @priv:                  Private pointer of hw update
- *
- */
-struct cam_hw_stream_setttings {
-	struct cam_packet              *packet;
-	void                           *ctxt_to_hw_map;
-	void                           *priv;
-};
-
-/**
  * struct cam_hw_config_args - Payload for config command
  *
  * @ctxt_to_hw_map:        HW context from the acquire
@@ -332,8 +318,6 @@ struct cam_hw_cmd_args {
  *                               args = cam_hw_stop_args
  * @hw_prepare_update:         Function pointer for prepare hw update for hw
  *                             devices args = cam_hw_prepare_update_args
- * @hw_config_stream_settings: Function pointer for configure stream for hw
- *                             devices args = cam_hw_stream_setttings
  * @hw_config:                 Function pointer for configure hw devices
  *                               args = cam_hw_config_args
  * @hw_read:                   Function pointer for read hardware registers
@@ -356,8 +340,6 @@ struct cam_hw_mgr_intf {
 	int (*hw_start)(void *hw_priv, void *hw_start_args);
 	int (*hw_stop)(void *hw_priv, void *hw_stop_args);
 	int (*hw_prepare_update)(void *hw_priv, void *hw_prepare_update_args);
-	int (*hw_config_stream_settings)(void *hw_priv,
-		void *hw_stream_settings);
 	int (*hw_config)(void *hw_priv, void *hw_config_args);
 	int (*hw_read)(void *hw_priv, void *read_args);
 	int (*hw_write)(void *hw_priv, void *write_args);

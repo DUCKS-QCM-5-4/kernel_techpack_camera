@@ -5,7 +5,6 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-
 /* camera op codes */
 #define CAM_COMMON_OPCODE_BASE                  0x100
 #define CAM_QUERY_CAP                           (CAM_COMMON_OPCODE_BASE + 0x1)
@@ -601,37 +600,6 @@ struct cam_ubwc_config {
 	__u32      num_ports;
 	struct cam_ubwc_plane_cfg_v1
 		   ubwc_plane_cfg[1][CAM_PACKET_MAX_PLANES - 1];
-};
-
-/**
- * struct cam_cmd_mem_region_info -
- *              Cmd buffer region info
- *
- * @mem_handle : Memory handle of the region
- * @offset     : Offset if any
- * @size       : Size of the region
- * @flags      : Flags if any
- */
-struct cam_cmd_mem_region_info {
-	__s32     mem_handle;
-	__u32     offset;
-	__u32     size;
-	__u32     flags;
-};
-
-/**
- * struct cam_cmd_mem_regions -
- *        List of multiple memory descriptors of
- *        of different regions
- *
- * @version        : Version number
- * @num_regions    : Number of regions
- * @map_info_array : Array of all the regions
- */
-struct cam_cmd_mem_regions {
-	__u32 version;
-	__u32 num_regions;
-	struct cam_cmd_mem_region_info map_info_array[1];
 };
 
 /**

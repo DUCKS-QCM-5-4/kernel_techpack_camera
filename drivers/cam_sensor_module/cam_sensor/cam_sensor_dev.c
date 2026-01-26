@@ -30,6 +30,26 @@ static int cam_sensor_subdev_unsubscribe_event(struct v4l2_subdev *sd,
 	return v4l2_event_unsubscribe(fh, sub);
 }
 
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+#if MV_TEMP_SET
+ssize_t mv_operate_sensor_write_regs_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+ssize_t mv_operate_sensor_write_regs_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+static DEVICE_ATTR(mv_operate_sensor_write_regs, 0664,
+		mv_operate_sensor_write_regs_show,
+		mv_operate_sensor_write_regs_store);
+
+ssize_t mv_operate_sensor_read_regs_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+ssize_t mv_operate_sensor_read_regs_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+static DEVICE_ATTR(mv_operate_sensor_read_regs, 0664,
+		mv_operate_sensor_read_regs_show,
+		mv_operate_sensor_read_regs_store);
+#endif
+#endif
+
 static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
@@ -360,6 +380,20 @@ static int cam_sensor_component_bind(struct device *dev,
 	s_ctrl->sensordata->power_info.dev = &pdev->dev;
 	platform_set_drvdata(pdev, s_ctrl);
 	v4l2_set_subdevdata(&(s_ctrl->v4l2_dev_str.sd), s_ctrl);
+
+#if defined(CONFIG_MACH_XIAOMI_SDM845)
+#if MV_TEMP_SET
+	/* Store sensor control structure in static database */
+	rc = sysfs_create_file(&(pdev->dev.kobj), &dev_attr_mv_operate_sensor_write_regs.attr);
+	if (rc < 0) {
+		CAM_ERR(CAM_SENSOR, "can note create ir write sys node rc %d", rc);
+	}
+	rc = sysfs_create_file(&(pdev->dev.kobj), &dev_attr_mv_operate_sensor_read_regs.attr);
+	if (rc < 0) {
+		CAM_ERR(CAM_SENSOR, "can note create ir read sys node rc %d", rc);
+	}
+#endif
+#endif
 
 	s_ctrl->sensor_state = CAM_SENSOR_INIT;
 

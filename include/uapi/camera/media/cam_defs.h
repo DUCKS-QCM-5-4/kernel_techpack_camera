@@ -26,6 +26,13 @@
 #define CAM_EXT_OPCODE_BASE                     0x200
 #define CAM_CONFIG_DEV_EXTERNAL                 (CAM_EXT_OPCODE_BASE + 0x1)
 
+/* Xiaomi-SDM845 Change start */
+/* camera ir op codes*/
+#define CAM_IR_UPDATE                           (CAM_EXT_OPCODE_BASE + 0x2)
+#define CAM_IR_GET_POWER_STATE                  (CAM_EXT_OPCODE_BASE + 0x3)
+#define CAM_IR_LUMA_READ                        (CAM_EXT_OPCODE_BASE + 0x4)
+/* Xiaomi-SDM845 Change end */
+
 /* camera handle type */
 #define CAM_HANDLE_USER_POINTER                 1
 #define CAM_HANDLE_MEM_HANDLE                   2
@@ -650,5 +657,12 @@ struct cam_cmd_mem_regions {
 	__u32 num_regions;
 	struct cam_cmd_mem_region_info map_info_array[1];
 };
+
+/* Xiaomi-SDM845 Change start */
+struct cam_luma_data {
+	__u32	        expo;
+	__u32	        gain;
+};
+/* Xiaomi-SDM845 Change end */
 
 #endif /* __UAPI_CAM_DEFS_H__ */

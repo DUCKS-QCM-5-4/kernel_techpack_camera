@@ -16,7 +16,7 @@
 #include <linux/mutex.h>
 #include <linux/msm_ion.h>
 #include <linux/slab.h>
-#include <linux/ion_kernel.h>
+#include <linux/ion.h>
 #include <linux/dma-buf.h>
 #include <asm/cacheflush.h>
 

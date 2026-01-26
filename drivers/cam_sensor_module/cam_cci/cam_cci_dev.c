@@ -72,15 +72,15 @@ irqreturn_t cam_cci_irq(int irq_num, void *data)
 	CAM_DBG(CAM_CCI, "irq0:%x irq1:%x", irq_status0, irq_status1);
 
 	if (irq_status0 & CCI_IRQ_STATUS_0_RST_DONE_ACK_BMSK) {
-		if (cci_dev->cci_master_info[MASTER_0].reset_pending == TRUE) {
+		if (cci_dev->cci_master_info[MASTER_0].reset_pending) {
 			cci_dev->cci_master_info[MASTER_0].reset_pending =
-				FALSE;
+				false;
 			complete(
 			&cci_dev->cci_master_info[MASTER_0].reset_complete);
 		}
-		if (cci_dev->cci_master_info[MASTER_1].reset_pending == TRUE) {
+		if (cci_dev->cci_master_info[MASTER_1].reset_pending) {
 			cci_dev->cci_master_info[MASTER_1].reset_pending =
-				FALSE;
+				false;
 			complete(
 			&cci_dev->cci_master_info[MASTER_1].reset_complete);
 		}
@@ -203,12 +203,12 @@ irqreturn_t cam_cci_irq(int irq_num, void *data)
 		CAM_DBG(CAM_CCI, "RD_PAUSE ON MASTER_1");
 
 	if (irq_status0 & CCI_IRQ_STATUS_0_I2C_M0_Q0Q1_HALT_ACK_BMSK) {
-		cci_dev->cci_master_info[MASTER_0].reset_pending = TRUE;
+		cci_dev->cci_master_info[MASTER_0].reset_pending = true;
 		cam_io_w_mb(CCI_M0_RESET_RMSK,
 			base + CCI_RESET_CMD_ADDR);
 	}
 	if (irq_status0 & CCI_IRQ_STATUS_0_I2C_M1_Q0Q1_HALT_ACK_BMSK) {
-		cci_dev->cci_master_info[MASTER_1].reset_pending = TRUE;
+		cci_dev->cci_master_info[MASTER_1].reset_pending = true;
 		cam_io_w_mb(CCI_M1_RESET_RMSK,
 			base + CCI_RESET_CMD_ADDR);
 	}
@@ -249,7 +249,7 @@ static int cam_cci_irq_routine(struct v4l2_subdev *sd, u32 status,
 		&cci_dev->soc_info;
 
 	ret = cam_cci_irq(soc_info->irq_line->start, cci_dev);
-	*handled = TRUE;
+	*handled = true;
 	return 0;
 }
 

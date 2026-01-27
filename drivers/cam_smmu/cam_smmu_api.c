@@ -3458,6 +3458,22 @@ static int cam_populate_smmu_context_banks(struct device *dev,
 		iommu_set_fault_handler(cb->domain,
 			cam_smmu_iommu_fault_handler,
 			(void *)cb->name);
+
+	if (!dev->dma_parms)
+		dev->dma_parms = devm_kzalloc(dev,
+			sizeof(*dev->dma_parms), GFP_KERNEL);
+
+	if (!dev->dma_parms) {
+		CAM_WARN(CAM_SMMU,
+			"Failed to allocate dma_params");
+		dev->dma_parms = NULL;
+		goto end;
+	}
+
+	dma_set_max_seg_size(dev, DMA_BIT_MASK(32));
+	dma_set_seg_boundary(dev, DMA_BIT_MASK(64));
+
+end:
 	/* increment count to next bank */
 	iommu_cb_set.cb_init_count++;
 
@@ -3589,6 +3605,7 @@ static int cam_smmu_probe(struct platform_device *pdev)
 
 	CAM_DBG(CAM_SMMU, "Adding SMMU component: %s", pdev->name);
 
+	dev->dma_parms = NULL;
 	if (of_device_is_compatible(dev->of_node, "qcom,msm-cam-smmu")) {
 		rc = cam_alloc_smmu_context_banks(dev);
 		if (rc < 0) {
@@ -3626,6 +3643,11 @@ static int cam_smmu_remove(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 
 	CAM_DBG(CAM_SMMU, "Removing SMMU component: %s", pdev->name);
+
+	if (dev && dev->dma_parms) {
+		devm_kfree(dev, dev->dma_parms);
+		dev->dma_parms = NULL;
+	}
 
 	if (of_device_is_compatible(dev->of_node, "qcom,msm-cam-smmu")) {
 		component_del(&pdev->dev, &cam_smmu_component_ops);

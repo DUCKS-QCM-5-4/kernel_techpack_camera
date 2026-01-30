@@ -110,6 +110,11 @@ camera-$(CONFIG_SPECTRA_LRME) += \
 	cam_lrme/cam_lrme_context.o \
 	cam_lrme/cam_lrme_dev.o
 
+camera-$(CONFIG_XIAOMI_3DSL_EEPROM) += \
+	cam_sensor_module/3dsl_eeprom_xm/3dsl_eeprom_dev.o \
+	cam_sensor_module/3dsl_eeprom_xm/3dsl_eeprom_core.o \
+	cam_sensor_module/3dsl_eeprom_xm/3dsl_eeprom_soc.o
+
 camera-$(CONFIG_SPECTRA_SENSOR) += \
 	cam_sensor_module/cam_actuator/cam_actuator_core.o \
 	cam_sensor_module/cam_actuator/cam_actuator_dev.o \

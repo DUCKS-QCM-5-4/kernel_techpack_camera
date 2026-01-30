@@ -25,6 +25,9 @@ extern struct platform_driver isp_driver;
 extern struct platform_driver cam_res_mgr_driver;
 extern struct platform_driver cci_driver;
 extern struct platform_driver csiphy_driver;
+#ifdef CONFIG_XIAOMI_3DSL_EEPROM
+extern struct platform_driver sl_eeprom_platform_driver;
+#endif
 extern struct platform_driver cam_actuator_platform_driver;
 extern struct platform_driver cam_sensor_platform_driver;
 extern struct platform_driver cam_eeprom_platform_driver;
@@ -79,6 +82,9 @@ static struct platform_driver *const cam_component_platform_drivers[] = {
 	&cam_res_mgr_driver,
 	&cci_driver,
 	&csiphy_driver,
+#ifdef CONFIG_XIAOMI_3DSL_EEPROM
+	&sl_eeprom_platform_driver,
+#endif
 	&cam_actuator_platform_driver,
 	&cam_sensor_platform_driver,
 	&cam_eeprom_platform_driver,

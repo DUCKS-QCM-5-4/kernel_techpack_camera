@@ -9,6 +9,8 @@
 #include "3dsl_eeprom_soc.h"
 #include "3dsl_eeprom_core.h"
 #include "cam_debug_util.h"
+#include "camera_main.h"
+
 struct sl_eeprom_ctrl_t       *g_e_ctrl = NULL;
 
 /**
@@ -135,18 +137,21 @@ static int sl_eeprom_init_subdev(struct sl_eeprom_ctrl_t *e_ctrl)
 }
 
 /**
- * sl_eeprom_platform_driver_probe -probe info
+ * sl_eeprom_component_bind -probe info
  * @pdev:    dev info
  *
  * Returns success or failure
  */
-static int32_t sl_eeprom_platform_driver_probe(
-	struct platform_device *pdev)
+static int32_t sl_eeprom_component_bind(struct device *dev,
+	struct device *master_dev, void *data)
 {
-	int32_t                         rc = 0;
+	struct platform_device *pdev   = to_platform_device(dev);
 	struct sl_eeprom_ctrl_t       *e_ctrl = NULL;
 	struct sl_eeprom_soc_private  *soc_private = NULL;
-	CAM_DBG(CAM_SL_EEPROM, "sl_eeprom_platform_driver_probe enter");
+	int32_t                        rc = 0;
+
+	CAM_DBG(CAM_SL_EEPROM, "sl_eeprom_component_bind enter");
+
 	e_ctrl = kzalloc(sizeof(struct sl_eeprom_ctrl_t), GFP_KERNEL);
 	if (!e_ctrl){
 		return -ENOMEM;
@@ -201,6 +206,9 @@ static int32_t sl_eeprom_platform_driver_probe(
 	platform_set_drvdata(pdev, e_ctrl);
 	e_ctrl->sl_eeprom_state = CAM_SL_EEPROM_INIT;
 	g_e_ctrl = e_ctrl;
+
+	CAM_DBG(CAM_SL_EEPROM, "sl_eeprom_component_bind exit");
+
 	return rc;
 free_soc:
 	kfree(soc_private);
@@ -212,20 +220,23 @@ free_e_ctrl:
 }
 
 /**
- * sl_eeprom_platform_driver_remove -driver remove func
+ * sl_eeprom_component_unbind -driver remove func
  * @pdev:    dev info
  *
  * Returns success or failure
- */static int sl_eeprom_platform_driver_remove(struct platform_device *pdev)
+ */
+static void sl_eeprom_component_unbind(struct device *dev,
+	struct device *master_dev, void *data)
 {
-	int                        i;
+	struct platform_device *pdev = to_platform_device(dev);
 	struct sl_eeprom_ctrl_t  *e_ctrl;
 	struct cam_hw_soc_info    *soc_info;
+	int                        i;
 
 	e_ctrl = platform_get_drvdata(pdev);
 	if (!e_ctrl) {
 		CAM_ERR(CAM_SL_EEPROM, "eeprom device is NULL");
-		return -EINVAL;
+		return;
 	}
 
 	soc_info = &e_ctrl->soc_info;
@@ -236,27 +247,49 @@ free_e_ctrl:
 	kfree(soc_info->soc_private);
 	kfree(e_ctrl->io_master_info.cci_client);
 	kfree(e_ctrl);
-	return 0;
 }
 
 static const struct of_device_id sl_eeprom_dt_match[] = {
 	{ .compatible = "qcom,sl_eeprom" },
 	{ }
 };
-
 MODULE_DEVICE_TABLE(of, sl_eeprom_dt_match);
 
-static struct platform_driver sl_eeprom_platform_driver = {
+static const struct component_ops sl_eeprom_compoment_ops = {
+	.bind = sl_eeprom_component_bind,
+	.unbind = sl_eeprom_component_unbind,
+};
+
+static int sl_eeprom_platform_driver_probe(struct platform_device *pdev)
+{
+	int rc = 0;
+
+	CAM_DBG(CAM_SL_EEPROM, "Adding 3dsl_eeprom component");
+	rc = component_add(&pdev->dev, &sl_eeprom_compoment_ops);
+	if (rc)
+		CAM_ERR(CAM_SL_EEPROM, "failed to add 3dsl_eeprom component rc: %d", rc);
+
+	return rc;
+}
+
+static int sl_eeprom_platform_driver_remove(struct platform_device *pdev)
+{
+	component_del(&pdev->dev, &sl_eeprom_compoment_ops);
+	return 0;
+}
+
+struct platform_driver sl_eeprom_platform_driver = {
+	.probe = sl_eeprom_platform_driver_probe,
+	.remove = sl_eeprom_platform_driver_remove,
 	.driver = {
 		.name = "qcom,sl_eeprom",
 		.owner = THIS_MODULE,
 		.of_match_table = sl_eeprom_dt_match,
+		.suppress_bind_attrs = true,
 	},
-	.probe = sl_eeprom_platform_driver_probe,
-	.remove = sl_eeprom_platform_driver_remove,
 };
 
-static int __init sl_eeprom_driver_init(void)
+int sl_eeprom_driver_init(void)
 {
 	int rc = 0;
 	rc = platform_driver_register(&sl_eeprom_platform_driver);
@@ -267,13 +300,11 @@ static int __init sl_eeprom_driver_init(void)
 	return rc;
 }
 
-static void __exit sl_eeprom_driver_exit(void)
+void sl_eeprom_driver_exit(void)
 {
 	platform_driver_unregister(&sl_eeprom_platform_driver);
 }
 
-module_init(sl_eeprom_driver_init);
-module_exit(sl_eeprom_driver_exit);
 MODULE_DESCRIPTION("3DSL EEPROM driver");
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("xiaomi camera");

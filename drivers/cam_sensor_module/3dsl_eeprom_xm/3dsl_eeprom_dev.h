@@ -37,9 +37,7 @@
 
 #define PROPERTY_MAXSIZE 32
 
-#define MSM_EEPROM_MEMORY_MAP_MAX_SIZE         80
-#define MSM_EEPROM_MAX_MEM_MAP_CNT             8
-#define MSM_EEPROM_MEM_MAP_PROPERTIES_CNT      6
+#define SL_MSM_EEPROM_MEM_MAP_PROPERTIES_CNT      6
 
 #define DL_CLASS_NAME "3DSL_EEPROM"
 
@@ -222,6 +220,17 @@ struct sl_eeprom_ctrl_t {
 
 int32_t sl_eeprom_update_i2c_info(struct sl_eeprom_ctrl_t *e_ctrl,
 	struct sl_eeprom_i2c_info_t *i2c_info);
+
+/**
+ * @brief : API to register 3dsl_eeprom dev to platform framework.
+ * @return struct platform_device pointer on on success, or ERR_PTR() on error.
+ */
+int sl_eeprom_driver_init(void);
+
+/**
+ * @brief : API to remove 3dsl_eeprom dev from platform framework.
+ */
+void sl_eeprom_driver_exit(void);
 
 #endif /*_CAM_SL_EEPROM_DEV_H_ */
 

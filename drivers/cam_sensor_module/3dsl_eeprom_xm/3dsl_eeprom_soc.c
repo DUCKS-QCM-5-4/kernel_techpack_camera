@@ -22,7 +22,7 @@ int sl_eeprom_parse_dt_memory_map(struct device_node *node,
 {
 	int       i, rc = 0;
 	char      property[PROPERTY_MAXSIZE];
-	uint32_t  count = MSM_EEPROM_MEM_MAP_PROPERTIES_CNT;
+	uint32_t  count = SL_MSM_EEPROM_MEM_MAP_PROPERTIES_CNT;
 	struct    sl_eeprom_memory_map_t *map;
 	snprintf(property, PROPERTY_MAXSIZE, "num-blocks");
 	rc = of_property_read_u32(node, property, &data->num_map);

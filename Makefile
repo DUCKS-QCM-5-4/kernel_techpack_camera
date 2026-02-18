@@ -10,6 +10,15 @@ LINUXINCLUDE    += \
 		-include $(srctree)/techpack/camera/config/sdm845cameraconf.h
 endif
 
+ifeq ($(CONFIG_ARCH_SM8150), y)
+include $(srctree)/techpack/camera/config/msmnilecamera.conf
+endif
+
+ifeq ($(CONFIG_ARCH_SM8150), y)
+LINUXINCLUDE    += \
+		-include $(srctree)/techpack/camera/config/msmnilecameraconf.h
+endif
+
 ifneq (,$(filter $(CONFIG_SPECTRA_CAMERA), y m))
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE     += \
